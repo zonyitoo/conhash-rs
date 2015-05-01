@@ -48,6 +48,7 @@ impl<N: Node> ConsistentHash<N> {
 
     /// Construct with customized hash function
     pub fn with_hash(num_replicas: usize, hash_fn: fn(&str) -> String) -> ConsistentHash<N> {
+        debug!("Initializing ConsistentHash with replicas {}", num_replicas);
         ConsistentHash {
             num_replicas: num_replicas,
             hash_fn: hash_fn,
@@ -57,9 +58,11 @@ impl<N: Node> ConsistentHash<N> {
 
     /// Add a new node
     pub fn add(&mut self, node: &N) {
+        debug!("Adding node {:?}", node.name());
         for replica in 0..self.num_replicas {
             let node_ident = format!("{}:{}", node.name(), replica);
             let key = (self.hash_fn)(&node_ident[..]);
+            debug!("Adding node {:?} of replica {}, hashed key is {:?}", node.name(), replica, key);
 
             self.nodes.insert(key, node.clone());
         }
@@ -68,28 +71,12 @@ impl<N: Node> ConsistentHash<N> {
     /// Get a node by key. Return `None` if no valid node inside
     pub fn get<'a>(&'a mut self, key: &str) -> Option<&'a N> {
         let hashed_key = (self.hash_fn)(key);
-
-        for (k, v) in self.nodes.iter() {
-            if hashed_key <= *k {
-                return Some(v);
-            }
-        }
-
-        // Back to the first one
-        match self.nodes.iter().next() {
-            Some((_, v)) => Some(v),
-            None => None
-        }
-    }
-
-    /// Get a node by key. Return `None` if no valid node inside
-    pub fn get_mut<'a>(&'a mut self, key: &str) -> Option<&'a mut N> {
-        let hashed_key = (self.hash_fn)(key);
+        debug!("Getting key {:?}, hashed key is {:?}", key, hashed_key);
 
         let mut first_one = None;
-
-        for (k, v) in self.nodes.iter_mut() {
+        for (k, v) in self.nodes.iter() {
             if hashed_key <= *k {
+                debug!("Found node {:?}", v.name());
                 return Some(v);
             }
 
@@ -98,11 +85,44 @@ impl<N: Node> ConsistentHash<N> {
             }
         }
 
+        debug!("Search to the end, coming back to the head ...");
+        match first_one {
+            Some(ref v) => debug!("Found node {:?}", v.name()),
+            None => debug!("The container is empty"),
+        }
+        // Back to the first one
+        first_one
+    }
+
+    /// Get a node by key. Return `None` if no valid node inside
+    pub fn get_mut<'a>(&'a mut self, key: &str) -> Option<&'a mut N> {
+        let hashed_key = (self.hash_fn)(key);
+        debug!("Getting key {:?}, hashed key is {:?}", key, hashed_key);
+
+        let mut first_one = None;
+        for (k, v) in self.nodes.iter_mut() {
+            if hashed_key <= *k {
+                debug!("Found node {:?}", v.name());
+                return Some(v);
+            }
+
+            if first_one.is_none() {
+                first_one = Some(v);
+            }
+        }
+
+        debug!("Search to the end, coming back to the head ...");
+        match first_one {
+            Some(ref v) => debug!("Found node {:?}", v.name()),
+            None => debug!("The container is empty"),
+        }
+        // Back to the first one
         first_one
     }
 
     /// Remove a node with all replicas (virtual nodes)
     pub fn remove(&mut self, node: &N) {
+        debug!("Removing node {:?}", node.name());
         for replica in 0..self.num_replicas {
             let node_ident = format!("{}:{}", node.name(), replica);
             let key = (self.hash_fn)(&node_ident[..]);
