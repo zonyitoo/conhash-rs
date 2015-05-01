@@ -1,6 +1,6 @@
 [package]
 name = "conhash"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Y. T. Chung <zonyitoo@gmail.com>"]
 description = "Consistent Hashing library in Rust"
 repository = "https://github.com/zonyitoo/conhash-rs"

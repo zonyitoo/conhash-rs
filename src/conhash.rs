@@ -19,7 +19,7 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::iter::repeat;
 
 use crypto::digest::Digest;
@@ -39,33 +39,40 @@ fn default_md5_hash_fn(input: &[u8]) -> Vec<u8> {
 
 /// Consistent Hash
 pub struct ConsistentHash<N: Node> {
-    num_replicas: usize,
     hash_fn: fn(&[u8]) -> Vec<u8>,
     nodes: BTreeMap<Vec<u8>, N>,
+    replicas: HashMap<String, usize>,
 }
 
 impl<N: Node> ConsistentHash<N> {
 
     /// Construct with default hash function (Md5)
-    pub fn new(num_replicas: usize) -> ConsistentHash<N> {
-        ConsistentHash::with_hash(num_replicas, default_md5_hash_fn)
+    pub fn new() -> ConsistentHash<N> {
+        ConsistentHash::with_hash(default_md5_hash_fn)
     }
 
     /// Construct with customized hash function
-    pub fn with_hash(num_replicas: usize, hash_fn: fn(&[u8]) -> Vec<u8>) -> ConsistentHash<N> {
-        debug!("Initializing ConsistentHash with replicas {}", num_replicas);
+    pub fn with_hash(hash_fn: fn(&[u8]) -> Vec<u8>) -> ConsistentHash<N> {
         ConsistentHash {
-            num_replicas: num_replicas,
             hash_fn: hash_fn,
             nodes: BTreeMap::new(),
+            replicas: HashMap::new(),
         }
     }
 
     /// Add a new node
-    pub fn add(&mut self, node: &N) {
-        debug!("Adding node {:?}", node.name());
-        for replica in 0..self.num_replicas {
-            let node_ident = format!("{}:{}", node.name(), replica);
+    pub fn add(&mut self, node: &N, num_replicas: usize) {
+        debug!("Adding node {:?} with {} replicas", node.name(), num_replicas);
+        let node_name = node.name();
+        match self.replicas.remove(&node_name) {
+            Some(rep) => {
+                debug!("Node {:?} is already set with {} replicas, remove it first", node_name, rep);
+            },
+            None => {}
+        }
+
+        for replica in 0..num_replicas {
+            let node_ident = format!("{}:{}", node_name, replica);
             let key = (self.hash_fn)(node_ident.as_bytes());
             debug!("Adding node {:?} of replica {}, hashed key is {:?}", node.name(), replica, key);
 
@@ -137,8 +144,21 @@ impl<N: Node> ConsistentHash<N> {
 
     /// Remove a node with all replicas (virtual nodes)
     pub fn remove(&mut self, node: &N) {
-        debug!("Removing node {:?}", node.name());
-        for replica in 0..self.num_replicas {
+        let node_name = node.name();
+        debug!("Removing node {:?}", node_name);
+
+        let num_replicas = match self.replicas.remove(&node_name) {
+            Some(val) => {
+                debug!("Node {:?} has {} replicas", node_name, val);
+                val
+            },
+            None => {
+                debug!("Node {:?} not exists", node_name);
+                return;
+            }
+        };
+
+        for replica in 0..num_replicas {
             let node_ident = format!("{}:{}", node.name(), replica);
             let key = (self.hash_fn)(node_ident.as_bytes());
             self.nodes.remove(&key);
@@ -193,10 +213,10 @@ mod test {
 
         const REPLICAS: usize = 20;
 
-        let mut ch = ConsistentHash::new(REPLICAS);
+        let mut ch = ConsistentHash::new();
 
         for node in nodes.iter() {
-            ch.add(node);
+            ch.add(node, REPLICAS);
         }
 
         assert_eq!(ch.len(), nodes.len() * REPLICAS);
