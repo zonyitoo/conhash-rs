@@ -20,23 +20,28 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 use std::collections::BTreeMap;
+use std::iter::repeat;
 
 use crypto::digest::Digest;
 use crypto::md5::Md5;
 
 use node::Node;
 
-fn default_md5_hash_fn(input: &str) -> String {
+fn default_md5_hash_fn(input: &[u8]) -> Vec<u8> {
     let mut d = Md5::new();
-    d.input_str(input);
-    d.result_str()
+    d.input(input);
+
+    let mut buf = repeat(0).take((d.output_bits() + 7) / 8).collect::<Vec<u8>>();
+    d.result(&mut buf);
+
+    buf
 }
 
 /// Consistent Hash
 pub struct ConsistentHash<N: Node> {
     num_replicas: usize,
-    hash_fn: fn(&str) -> String,
-    nodes: BTreeMap<String, N>,
+    hash_fn: fn(&[u8]) -> Vec<u8>,
+    nodes: BTreeMap<Vec<u8>, N>,
 }
 
 impl<N: Node> ConsistentHash<N> {
@@ -47,7 +52,7 @@ impl<N: Node> ConsistentHash<N> {
     }
 
     /// Construct with customized hash function
-    pub fn with_hash(num_replicas: usize, hash_fn: fn(&str) -> String) -> ConsistentHash<N> {
+    pub fn with_hash(num_replicas: usize, hash_fn: fn(&[u8]) -> Vec<u8>) -> ConsistentHash<N> {
         debug!("Initializing ConsistentHash with replicas {}", num_replicas);
         ConsistentHash {
             num_replicas: num_replicas,
@@ -61,7 +66,7 @@ impl<N: Node> ConsistentHash<N> {
         debug!("Adding node {:?}", node.name());
         for replica in 0..self.num_replicas {
             let node_ident = format!("{}:{}", node.name(), replica);
-            let key = (self.hash_fn)(&node_ident[..]);
+            let key = (self.hash_fn)(node_ident.as_bytes());
             debug!("Adding node {:?} of replica {}, hashed key is {:?}", node.name(), replica, key);
 
             self.nodes.insert(key, node.clone());
@@ -69,7 +74,7 @@ impl<N: Node> ConsistentHash<N> {
     }
 
     /// Get a node by key. Return `None` if no valid node inside
-    pub fn get<'a>(&'a mut self, key: &str) -> Option<&'a N> {
+    pub fn get<'a>(&'a mut self, key: &[u8]) -> Option<&'a N> {
         let hashed_key = (self.hash_fn)(key);
         debug!("Getting key {:?}, hashed key is {:?}", key, hashed_key);
 
@@ -94,8 +99,13 @@ impl<N: Node> ConsistentHash<N> {
         first_one
     }
 
+    /// Get a node by string key
+    pub fn get_str<'a>(&'a mut self, key: &str) -> Option<&'a N> {
+        self.get(key.as_bytes())
+    }
+
     /// Get a node by key. Return `None` if no valid node inside
-    pub fn get_mut<'a>(&'a mut self, key: &str) -> Option<&'a mut N> {
+    pub fn get_mut<'a>(&'a mut self, key: &[u8]) -> Option<&'a mut N> {
         let hashed_key = (self.hash_fn)(key);
         debug!("Getting key {:?}, hashed key is {:?}", key, hashed_key);
 
@@ -120,12 +130,17 @@ impl<N: Node> ConsistentHash<N> {
         first_one
     }
 
+    /// Get a node by string key
+    pub fn get_str_mut<'a>(&'a mut self, key: &str) -> Option<&'a mut N> {
+        self.get_mut(key.as_bytes())
+    }
+
     /// Remove a node with all replicas (virtual nodes)
     pub fn remove(&mut self, node: &N) {
         debug!("Removing node {:?}", node.name());
         for replica in 0..self.num_replicas {
             let node_ident = format!("{}:{}", node.name(), replica);
-            let key = (self.hash_fn)(&node_ident[..]);
+            let key = (self.hash_fn)(node_ident.as_bytes());
             self.nodes.remove(&key);
         }
     }
@@ -186,10 +201,10 @@ mod test {
 
         assert_eq!(ch.len(), nodes.len() * REPLICAS);
 
-        let node_for_hello = ch.get("hello").unwrap().clone();
+        let node_for_hello = ch.get_str("hello").unwrap().clone();
         assert_eq!(node_for_hello, ServerNode::new("localhost", 12347));
 
         ch.remove(&ServerNode::new("localhost", 12350));
-        assert_eq!(ch.get("hello").unwrap().clone(), node_for_hello);
+        assert_eq!(ch.get_str("hello").unwrap().clone(), node_for_hello);
     }
 }
