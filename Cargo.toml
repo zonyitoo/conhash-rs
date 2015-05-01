@@ -1,0 +1,12 @@
+[package]
+name = "conhash-rs"
+version = "0.1.0"
+authors = ["Y. T. Chung <zonyitoo@gmail.com>"]
+
+[lib]
+name = "conhash"
+
+[dependencies]
+rust-crypto = "*"
+log = "*"
+env_logger = "*"
