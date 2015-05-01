@@ -19,7 +19,7 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-//! ![Consistent Hashing](http://en.wikipedia.org/wiki/Consistent_hashing) is a special
+//! [Consistent Hashing](http://en.wikipedia.org/wiki/Consistent_hashing) is a special
 //! kind of hashing such that when a hash table is resized and consistent hashing is used,
 //! only K/n keys need to be remapped on average, where K is the number of keys, and n
 //! is hte number of slots.
