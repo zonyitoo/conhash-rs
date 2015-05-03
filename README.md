@@ -54,10 +54,10 @@ fn main() {
 
     const REPLICAS: usize = 20;
 
-    let mut ch = ConsistentHash::new(REPLICAS);
+    let mut ch = ConsistentHash::new();
 
     for node in nodes.iter() {
-        ch.add(node);
+        ch.add(node, REPLICAS);
     }
 
     assert_eq!(ch.len(), nodes.len() * REPLICAS);
