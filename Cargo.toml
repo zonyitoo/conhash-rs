@@ -5,12 +5,14 @@ authors = ["Y. T. Chung <zonyitoo@gmail.com>"]
 description = "Consistent Hashing library in Rust"
 repository = "https://github.com/zonyitoo/conhash-rs"
 keywords = ["consistent", "hash", "cache"]
-license = "MIT"
+license = "MIT/Apache-2.0"
 
 [lib]
 name = "conhash"
 
 [dependencies]
-rust-crypto = "*"
-log = "*"
+rust-crypto = "^0.2.34"
+log = "^0.3.4"
+
+[dev-dependencies]
 env_logger = "*"
