@@ -68,7 +68,7 @@ impl<N: Node> ConsistentHash<N> {
     }
 
     /// Get a node by key. Return `None` if no valid node inside
-    pub fn get<'a>(&'a mut self, key: &[u8]) -> Option<&'a N> {
+    pub fn get<'a>(&'a self, key: &[u8]) -> Option<&'a N> {
         let hashed_key = (self.hash_fn)(key);
         debug!("Getting key {:?}, hashed key is {:?}", key, hashed_key);
 
@@ -94,7 +94,7 @@ impl<N: Node> ConsistentHash<N> {
     }
 
     /// Get a node by string key
-    pub fn get_str<'a>(&'a mut self, key: &str) -> Option<&'a N> {
+    pub fn get_str<'a>(&'a self, key: &str) -> Option<&'a N> {
         self.get(key.as_bytes())
     }
 
