@@ -211,7 +211,11 @@ mod test {
         ch.remove(&ServerNode::new("localhost", 12350));
         assert_eq!(ch.get_str("hello").unwrap().clone(), node_for_hello);
 
+        assert_eq!(ch.len(), (nodes.len() - 1) * REPLICAS);
+
         ch.remove(&ServerNode::new("localhost", 12347));
         assert_ne!(ch.get_str("hello").unwrap().clone(), node_for_hello);
+
+        assert_eq!(ch.len(), (nodes.len() - 2) * REPLICAS);
     }
 }
