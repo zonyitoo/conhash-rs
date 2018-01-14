@@ -18,7 +18,9 @@ fn default_md5_hash_fn(input: &[u8]) -> Vec<u8> {
     let mut d = Md5::new();
     d.input(input);
 
-    let mut buf = repeat(0).take((d.output_bits() + 7) / 8).collect::<Vec<u8>>();
+    let mut buf = repeat(0)
+        .take((d.output_bits() + 7) / 8)
+        .collect::<Vec<u8>>();
     d.result(&mut buf);
 
     buf
@@ -32,7 +34,6 @@ pub struct ConsistentHash<N: Node> {
 }
 
 impl<N: Node> ConsistentHash<N> {
-
     /// Construct with default hash function (Md5)
     pub fn new() -> ConsistentHash<N> {
         ConsistentHash::with_hash(default_md5_hash_fn)
@@ -49,19 +50,22 @@ impl<N: Node> ConsistentHash<N> {
 
     /// Add a new node
     pub fn add(&mut self, node: &N, num_replicas: usize) {
-        debug!("Adding node {:?} with {} replicas", node.name(), num_replicas);
         let node_name = node.name();
-        match self.replicas.remove(&node_name) {
-            Some(rep) => {
-                debug!("Node {:?} is already set with {} replicas, remove it first", node_name, rep);
-            },
-            None => {}
-        }
+        debug!("Adding node {:?} with {} replicas", node_name, num_replicas);
 
+        // Remove it first
+        self.remove(&node);
+
+        self.replicas.insert(node_name.clone(), num_replicas);
         for replica in 0..num_replicas {
             let node_ident = format!("{}:{}", node_name, replica);
             let key = (self.hash_fn)(node_ident.as_bytes());
-            debug!("Adding node {:?} of replica {}, hashed key is {:?}", node.name(), replica, key);
+            debug!(
+                "Adding node {:?} of replica {}, hashed key is {:?}",
+                node.name(),
+                replica,
+                key
+            );
 
             self.nodes.insert(key, node.clone());
         }
@@ -138,12 +142,14 @@ impl<N: Node> ConsistentHash<N> {
             Some(val) => {
                 debug!("Node {:?} has {} replicas", node_name, val);
                 val
-            },
+            }
             None => {
                 debug!("Node {:?} not exists", node_name);
                 return;
             }
         };
+
+        debug!("Node {:?} replicas {}", node_name, num_replicas);
 
         for replica in 0..num_replicas {
             let node_ident = format!("{}:{}", node.name(), replica);
@@ -213,5 +219,8 @@ mod test {
 
         ch.remove(&ServerNode::new("localhost", 12350));
         assert_eq!(ch.get_str("hello").unwrap().clone(), node_for_hello);
+
+        ch.remove(&ServerNode::new("localhost", 12347));
+        assert_ne!(ch.get_str("hello").unwrap().clone(), node_for_hello);
     }
 }

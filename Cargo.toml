@@ -1,6 +1,6 @@
 [package]
 name = "conhash"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["Y. T. Chung <zonyitoo@gmail.com>"]
 description = "Consistent Hashing library in Rust"
 repository = "https://github.com/zonyitoo/conhash-rs"
@@ -11,8 +11,8 @@ license = "MIT/Apache-2.0"
 name = "conhash"
 
 [dependencies]
-rust-crypto = "^0.2.34"
-log = "^0.3.4"
+rust-crypto = "0.2"
+log = "0.4"
 
 [dev-dependencies]
-env_logger = "^0.3.3"
+env_logger = "0.4"
