@@ -11,8 +11,9 @@
 //! only K/n keys need to be remapped on average, where K is the number of keys, and n
 //! is hte number of slots.
 
-extern crate crypto;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
+extern crate md5;
 
 pub use conhash::ConsistentHash;
 pub use node::Node;

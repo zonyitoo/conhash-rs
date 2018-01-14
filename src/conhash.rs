@@ -7,23 +7,14 @@
 // except according to those terms.
 
 use std::collections::{BTreeMap, HashMap};
-use std::iter::repeat;
 
-use crypto::digest::Digest;
-use crypto::md5::Md5;
+use md5;
 
 use node::Node;
 
 fn default_md5_hash_fn(input: &[u8]) -> Vec<u8> {
-    let mut d = Md5::new();
-    d.input(input);
-
-    let mut buf = repeat(0)
-        .take((d.output_bits() + 7) / 8)
-        .collect::<Vec<u8>>();
-    d.result(&mut buf);
-
-    buf
+    let digest = md5::compute(input);
+    digest.to_vec()
 }
 
 /// Consistent Hash
