@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use md5;
 
-use node::Node;
+use crate::Node;
 
 fn default_md5_hash_fn(input: &[u8]) -> Vec<u8> {
     let digest = md5::compute(input);
@@ -157,8 +157,7 @@ impl<N: Node> ConsistentHash<N> {
 
 #[cfg(test)]
 mod test {
-    use super::ConsistentHash;
-    use node::Node;
+    use super::*;
 
     #[derive(Debug, Clone, Eq, PartialEq)]
     struct ServerNode {
