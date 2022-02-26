@@ -33,7 +33,7 @@ impl<N: Node> ConsistentHash<N> {
     /// Construct with customized hash function
     pub fn with_hash(hash_fn: fn(&[u8]) -> Vec<u8>) -> ConsistentHash<N> {
         ConsistentHash {
-            hash_fn: hash_fn,
+            hash_fn,
             nodes: BTreeMap::new(),
             replicas: HashMap::new(),
         }
@@ -45,7 +45,7 @@ impl<N: Node> ConsistentHash<N> {
         debug!("Adding node {:?} with {} replicas", node_name, num_replicas);
 
         // Remove it first
-        self.remove(&node);
+        self.remove(node);
 
         self.replicas.insert(node_name.clone(), num_replicas);
         for replica in 0..num_replicas {
@@ -95,28 +95,30 @@ impl<N: Node> ConsistentHash<N> {
 
     /// Get a node by key. Return `None` if no valid node inside
     pub fn get_mut<'a>(&'a mut self, key: &[u8]) -> Option<&'a mut N> {
+        let hashed_key = self.get_node_hashed_key(key);
+        hashed_key.map(move |k| self.nodes.get_mut(&k)).flatten()
+    }
+
+    // Get a node's hashed key by key. Return `None` if no valid node inside
+    fn get_node_hashed_key(&self, key: &[u8]) -> Option<Vec<u8>> {
         let hashed_key = (self.hash_fn)(key);
         debug!("Getting key {:?}, hashed key is {:?}", key, hashed_key);
 
-        let mut first_one = None;
-        for (k, v) in self.nodes.iter_mut() {
-            if hashed_key <= *k {
-                debug!("Found node {:?}", v.name());
-                return Some(v);
-            }
-
-            if first_one.is_none() {
-                first_one = Some(v);
-            }
+        let entry = self.nodes.range(hashed_key..).next();
+        if let Some((k, v)) = entry {
+            debug!("Found node {:?}", v.name());
+            return Some(k.clone());
         }
 
-        debug!("Search to the end, coming back to the head ...");
-        match first_one {
-            Some(ref v) => debug!("Found node {:?}", v.name()),
-            None => debug!("The container is empty"),
-        }
         // Back to the first one
-        first_one
+        debug!("Search to the end, coming back to the head ...");
+        let first = self.nodes.iter().next();
+        if let Some((k, v)) = first {
+            debug!("Found node {:?}", v.name());
+            return Some(k.clone());
+        };
+        debug!("The container is empty");
+        None
     }
 
     /// Get a node by string key
@@ -152,6 +154,17 @@ impl<N: Node> ConsistentHash<N> {
     /// Number of nodes
     pub fn len(&self) -> usize {
         self.nodes.len()
+    }
+
+    /// Is empty
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl<N: Node> Default for ConsistentHash<N> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
