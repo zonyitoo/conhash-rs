@@ -232,4 +232,66 @@ mod test {
 
         assert_eq!(ch.len(), (nodes.len() - 2) * REPLICAS);
     }
+
+    #[test]
+    fn get_from_empty() {
+        let mut ch = ConsistentHash::<ServerNode>::new();
+        assert_eq!(ch.get_str(""), None);
+        assert_eq!(ch.get_str_mut(""), None);
+    }
+
+    #[test]
+    fn get_from_one_node() {
+        let mut node = ServerNode::new("localhost", 12345);
+        for replicas in 1..10_usize {
+            let mut ch = ConsistentHash::<ServerNode>::new();
+            ch.add(&node, replicas);
+            assert_eq!(ch.len(), replicas);
+            for i in 0..replicas * 100 {
+                let s = format!("{}", i);
+                assert_eq!(ch.get_str(&s), Some(&node));
+                assert_eq!(ch.get_str_mut(&s), Some(&mut node));
+            }
+        }
+    }
+
+    #[test]
+    fn get_from_two_nodes() {
+        let mut node0 = ServerNode::new("localhost", 12345);
+        let mut node1 = ServerNode::new("localhost", 54321);
+        for replicas in 1..10_usize {
+            let mut ch = ConsistentHash::<ServerNode>::new();
+            ch.add(&node0, replicas);
+            ch.add(&node1, replicas);
+            assert_eq!(ch.len(), 2 * replicas);
+            for i in 0..replicas * 100 {
+                let s = format!("{}", i);
+                let n = ch.get_str(&s).unwrap();
+                assert!(n == &node0 || n == &node1);
+                let n = ch.get_str(&s).unwrap();
+                assert!(n == &mut node0 || n == &mut node1);
+            }
+        }
+    }
+
+    #[test]
+    fn get_exact_node() {
+        let mut ch = ConsistentHash::new();
+        const NODES: usize = 1000;
+        const REPLICAS: usize = 20;
+        let mut nodes = Vec::<ServerNode>::with_capacity(NODES);
+        for i in 0..NODES {
+            let node = ServerNode::new("localhost", 10000 + i as u16);
+            ch.add(&node, REPLICAS);
+            nodes.push(node);
+        }
+        assert_eq!(ch.len(), NODES * REPLICAS);
+        for i in 0..NODES {
+            for r in 0..REPLICAS {
+                let s = format!("{}:{}", nodes[i].name(), r);
+                assert_eq!(ch.get_str(&s), Some(&nodes[i]));
+                assert_eq!(ch.get_str_mut(&s).cloned().as_ref(), Some(&nodes[i]));
+            }
+        }
+    }
 }
