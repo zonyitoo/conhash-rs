@@ -95,7 +95,7 @@ impl<N: Node> ConsistentHash<N> {
     /// Get a node by key. Return `None` if no valid node inside
     pub fn get_mut<'a>(&'a mut self, key: &[u8]) -> Option<&'a mut N> {
         let hashed_key = self.get_node_hashed_key(key);
-        hashed_key.map(move |k| self.nodes.get_mut(&k)).flatten()
+        hashed_key.and_then(move |k| self.nodes.get_mut(&k))
     }
 
     // Get a node's hashed key by key. Return `None` if no valid node inside
