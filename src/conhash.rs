@@ -64,28 +64,27 @@ impl<N: Node> ConsistentHash<N> {
 
     /// Get a node by key. Return `None` if no valid node inside
     pub fn get<'a>(&'a self, key: &[u8]) -> Option<&'a N> {
+        if self.nodes.is_empty() {
+            debug!("The container is empty");
+            return None;
+        }
+
         let hashed_key = (self.hash_fn)(key);
         debug!("Getting key {:?}, hashed key is {:?}", key, hashed_key);
 
-        let mut first_one = None;
-        for (k, v) in self.nodes.iter() {
-            if hashed_key <= *k {
-                debug!("Found node {:?}", v.name());
-                return Some(v);
-            }
-
-            if first_one.is_none() {
-                first_one = Some(v);
-            }
+        let entry = self.nodes.range(hashed_key..).next();
+        if let Some((_k, v)) = entry {
+            debug!("Found node {:?}", v.name());
+            return Some(v);
         }
 
-        debug!("Search to the end, coming back to the head ...");
-        match first_one {
-            Some(ref v) => debug!("Found node {:?}", v.name()),
-            None => debug!("The container is empty"),
-        }
         // Back to the first one
-        first_one
+        debug!("Search to the end, coming back to the head ...");
+        let first = self.nodes.iter().next();
+        debug_assert!(first.is_some());
+        let (_k, v) = first.unwrap();
+        debug!("Found node {:?}", v.name());
+        Some(v)
     }
 
     /// Get a node by string key
@@ -101,6 +100,11 @@ impl<N: Node> ConsistentHash<N> {
 
     // Get a node's hashed key by key. Return `None` if no valid node inside
     fn get_node_hashed_key(&self, key: &[u8]) -> Option<Vec<u8>> {
+        if self.nodes.is_empty() {
+            debug!("The container is empty");
+            return None;
+        }
+
         let hashed_key = (self.hash_fn)(key);
         debug!("Getting key {:?}, hashed key is {:?}", key, hashed_key);
 
@@ -113,12 +117,10 @@ impl<N: Node> ConsistentHash<N> {
         // Back to the first one
         debug!("Search to the end, coming back to the head ...");
         let first = self.nodes.iter().next();
-        if let Some((k, v)) = first {
-            debug!("Found node {:?}", v.name());
-            return Some(k.clone());
-        };
-        debug!("The container is empty");
-        None
+        debug_assert!(first.is_some());
+        let (k, v) = first.unwrap();
+        debug!("Found node {:?}", v.name());
+        Some(k.clone())
     }
 
     /// Get a node by string key
