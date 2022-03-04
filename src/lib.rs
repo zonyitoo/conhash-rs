@@ -15,7 +15,7 @@
 extern crate log;
 extern crate md5;
 
-pub use conhash::ConsistentHash;
+pub use crate::conhash::ConsistentHash;
 pub use node::Node;
 
 pub mod conhash;
