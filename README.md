@@ -1,6 +1,6 @@
 # Consistent Hashing for Rust
 
-[![Build Status](https://travis-ci.org/zonyitoo/conhash-rs.svg)](https://travis-ci.org/zonyitoo/conhash-rs)
+[![Build & Test](https://github.com/zonyitoo/conhash-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/zonyitoo/conhash-rs/actions/workflows/rust.yml)
 
 [Consistent hashing](http://en.wikipedia.org/wiki/Consistent_hashing) is a special kind of hashing such that
 when a hash table is resized and consistent hashing is used, only K/n keys need to be remapped on average,
